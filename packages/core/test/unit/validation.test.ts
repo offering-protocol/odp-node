@@ -115,6 +115,18 @@ describe("Collection validation", () => {
       }).success
     ).toBe(false);
   });
+
+  it("rejects malformed language tags", () => {
+    expect(
+      safeParseCollection({
+        odp_version: "1.0",
+        id: "gpus",
+        name: "GPUs",
+        language: "en-a",
+        localizations: ["en-a"]
+      }).success
+    ).toBe(false);
+  });
 });
 
 describe("Offering validation", () => {
@@ -131,6 +143,18 @@ describe("Offering validation", () => {
       attributes: { model: "A100" }
     });
     expect(result.success).toBe(false);
+  });
+
+  it("rejects repeated language variants", () => {
+    expect(
+      safeParseOffering({
+        odp_version: "1.0",
+        id: "gpu",
+        name: "GPU rental",
+        language: "sl-rozaj-rozaj",
+        localizations: ["sl-rozaj-rozaj"]
+      }).success
+    ).toBe(false);
   });
 
   it("throws a structured validation error", () => {

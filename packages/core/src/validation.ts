@@ -1,4 +1,5 @@
 import type { ErrorObject } from "ajv";
+import { parse as parseLanguageTag } from "bcp-47";
 
 import type {
   Collection,
@@ -15,7 +16,21 @@ import type {
 } from "./models.js";
 import { ajv } from "./schema-registry.js";
 
-const LANGUAGE_TAG = /^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/u;
+function isLanguageTag(value: string): boolean {
+  const parsed = parseLanguageTag(value, { normalize: false });
+  const populated =
+    parsed.language !== null ||
+    parsed.irregular !== null ||
+    parsed.regular !== null ||
+    parsed.privateuse.length > 0;
+  const variants = parsed.variants.map((variant) => variant.toLowerCase());
+  const extensions = parsed.extensions.map(({ singleton }) => singleton.toLowerCase());
+  return (
+    populated &&
+    new Set(variants).size === variants.length &&
+    new Set(extensions).size === extensions.length
+  );
+}
 
 export interface ValidationIssue {
   path: string;
@@ -56,11 +71,10 @@ function serviceDocumentIssues(value: ServiceDocument): ValidationIssue[] {
 
   if ("id" in value) add("/id", "prohibited", "must not appear in a Service Document");
   if ("web_url" in value) add("/web_url", "prohibited", "must not appear in a Service Document");
-  if (!LANGUAGE_TAG.test(value.language))
-    add("/language", "language-tag", "must be a language tag");
+  if (!isLanguageTag(value.language)) add("/language", "language-tag", "must be a language tag");
 
   const folded = value.localizations.map((language) => language.toLowerCase());
-  if (value.localizations.some((language) => !LANGUAGE_TAG.test(language))) {
+  if (value.localizations.some((language) => !isLanguageTag(language))) {
     add("/localizations", "language-tag", "must contain only language tags");
   }
   if (new Set(folded).size !== folded.length) {
@@ -92,6 +106,22 @@ function localizedRepresentationIssues(value: {
 }): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const folded = value.localizations?.map((language) => language.toLowerCase());
+  if (value.language !== undefined && !isLanguageTag(value.language)) {
+    issues.push({
+      path: "/language",
+      keyword: "language-tag",
+      message: "must be a language tag",
+      params: {}
+    });
+  }
+  if (value.localizations?.some((language) => !isLanguageTag(language)) === true) {
+    issues.push({
+      path: "/localizations",
+      keyword: "language-tag",
+      message: "must contain only language tags",
+      params: {}
+    });
+  }
   if (folded !== undefined && new Set(folded).size !== folded.length) {
     issues.push({
       path: "/localizations",

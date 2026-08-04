@@ -19,7 +19,7 @@ const packages = {
     "ajv-formats",
     "http-cache-semantics"
   ],
-  core: ["ajv", "ajv-formats"],
+  core: ["ajv", "ajv-formats", "bcp-47"],
   directory: ["@offering-protocol/core"],
   service: ["@offering-protocol/core"]
 };
