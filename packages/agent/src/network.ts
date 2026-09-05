@@ -30,8 +30,13 @@ export function createDefaultTransport(allowLocalNetwork = false): OdpTransport 
     if (address === undefined) throw new TypeError("ODP request host did not resolve");
     if (init?.body !== undefined && init.body !== null && typeof init.body !== "string")
       throw new TypeError("ODP default transport accepts string request bodies");
-    const pinnedLookup: LookupFunction = (_hostname, _options, callback) =>
+    const pinnedLookup: LookupFunction = (_hostname, options, callback) => {
+      if (options.all === true) {
+        callback(null, records);
+        return;
+      }
       callback(null, address.address, address.family);
+    };
     const dispatcher = new Agent({
       connect: { lookup: pinnedLookup },
       maxResponseSize: 1_048_576
