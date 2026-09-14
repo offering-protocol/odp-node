@@ -130,6 +130,7 @@ export class DirectoryRequestError extends Error {
 const MAXIMUM_BYTES = 524_288;
 const MAXIMUM_PAGES = 16;
 const MEDIA_TYPE = "application/json";
+const numberSources = new WeakMap<object, Map<string, string>>();
 const OPERATIONS = [
   "list-collections",
   "search-collections",
@@ -266,7 +267,7 @@ export function createDirectoryClient(options: DirectoryClientOptions = {}): Dir
       throw new TypeError("Directory response must use application/json");
     const text = await boundedText(response);
     try {
-      return JSON.parse(text);
+      return JSON.parse(text, preserveNumberSource);
     } catch {
       throw new TypeError("Directory response must contain valid JSON");
     }
@@ -518,7 +519,8 @@ function parseDescriptorFacet<Value>(
       object["count"],
       `${name} facet count`,
       0,
-      Number.MAX_SAFE_INTEGER
+      Number.MAX_SAFE_INTEGER,
+      numberSource(object, "count")
     );
     return { value: parse(object["value"]), count };
   });
@@ -555,7 +557,8 @@ function parseFacet<Value extends string>(
       object["count"],
       `${name} facet count`,
       0,
-      Number.MAX_SAFE_INTEGER
+      Number.MAX_SAFE_INTEGER,
+      numberSource(object, "count")
     );
     return { value: facetValue, count };
   });
@@ -660,8 +663,69 @@ function optionalInteger(
   return value === undefined ? undefined : boundedInteger(value, name, minimum, maximum);
 }
 
-function boundedInteger(value: unknown, name: string, minimum: number, maximum: number): number {
-  if (typeof value !== "number" || !Number.isInteger(value) || value < minimum || value > maximum)
+function boundedInteger(
+  value: unknown,
+  name: string,
+  minimum: number,
+  maximum: number,
+  source?: string
+): number {
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < minimum ||
+    value > maximum ||
+    (source !== undefined && !exactIntegerInRange(source, minimum, maximum))
+  )
     throw new RangeError(`${name} must be an integer from ${minimum} through ${maximum}`);
+  return value;
+}
+
+function exactIntegerInRange(source: string, minimum: number, maximum: number): boolean {
+  const match = /^(-?)(0|[1-9]\d*)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/u.exec(source);
+  const sign = match?.[1];
+  const integerPart = match?.[2];
+  if (sign === undefined || integerPart === undefined) return false;
+  const fraction = match?.[3] ?? "";
+  let digits = (integerPart + fraction).replace(/^0+/u, "");
+  if (digits === "") return minimum <= 0 && maximum >= 0;
+  const exponentText = match?.[4];
+  let exponent = 0;
+  if (exponentText !== undefined) {
+    const magnitude = exponentText.replace(/^[+-]?0*/u, "");
+    if (magnitude.length > 6) return false;
+    exponent = Number(exponentText);
+  }
+  const scale = exponent - fraction.length;
+  if (scale < 0) {
+    const trim = -scale;
+    if (trim >= digits.length || !/^0+$/u.test(digits.slice(-trim))) return false;
+    digits = digits.slice(0, -trim);
+  } else {
+    if (digits.length + scale > 16) return false;
+    digits += "0".repeat(scale);
+  }
+  const value = BigInt(`${sign}${digits}`);
+  return value >= BigInt(minimum) && value <= BigInt(maximum);
+}
+
+function numberSource(object: object, name: string): string | undefined {
+  return numberSources.get(object)?.get(name);
+}
+
+function preserveNumberSource(
+  this: object,
+  name: string,
+  value: unknown,
+  context?: { source?: string }
+): unknown {
+  if (name === "count" && typeof value === "number" && context?.source !== undefined) {
+    let sources = numberSources.get(this);
+    if (sources === undefined) {
+      sources = new Map<string, string>();
+      numberSources.set(this, sources);
+    }
+    sources.set(name, context.source);
+  }
   return value;
 }

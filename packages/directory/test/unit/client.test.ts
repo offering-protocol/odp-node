@@ -35,7 +35,46 @@ function response(value: unknown, status = 200): Response {
   });
 }
 
+function responseText(value: string): Response {
+  return new Response(value, { headers: { "content-type": "application/json" } });
+}
+
 describe("Directory client", () => {
+  it("validates facet counts without floating-point rounding", async () => {
+    for (const count of [
+      "1.5",
+      "15e-1",
+      "1.0000000000000000001",
+      "1e999999999",
+      "9007199254740992",
+      '"1"'
+    ]) {
+      const transport = vi.fn(() =>
+        Promise.resolve(
+          responseText(`{"items":[],"facets":{"keywords":[{"value":"gpu","count":${count}}]}}`)
+        )
+      );
+      const iterator = createDirectoryClient({ transport })
+        .searchServices()
+        .pages[Symbol.asyncIterator]();
+      await expect(iterator.next()).rejects.toThrow("must be an integer");
+    }
+
+    for (const count of ["-0", "0", "1e3", "10e-1"]) {
+      const transport = vi.fn(() =>
+        Promise.resolve(
+          responseText(`{"items":[],"facets":{"keywords":[{"value":"gpu","count":${count}}]}}`)
+        )
+      );
+      const iterator = createDirectoryClient({ transport })
+        .searchServices()
+        .pages[Symbol.asyncIterator]();
+      await expect(iterator.next()).resolves.toMatchObject({
+        value: { facets: { keywords: [{ count: Number(count), value: "gpu" }] } }
+      });
+    }
+  });
+
   it("uses the canonical production origin and sends structured filters", async () => {
     let requestUrl = "";
     let body: unknown;
