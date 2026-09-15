@@ -1,5 +1,13 @@
 # @offering-protocol/directory
 
+## 0.2.6
+
+### Patch Changes
+
+- [#54](https://github.com/offering-protocol/odp-node/pull/54) [`73447fc`](https://github.com/offering-protocol/odp-node/commit/73447fc45eda1d8cf59deacd25922617cb19c0c0) Thanks [@nkavian](https://github.com/nkavian)! - Add typed trust protocol filters and facets to Directory search.
+
+- [#52](https://github.com/offering-protocol/odp-node/pull/52) [`e2befe8`](https://github.com/offering-protocol/odp-node/commit/e2befe8d5f4b9adcc51633834d5f7377eb2f5014) Thanks [@zhoodar](https://github.com/zhoodar)! - Improve ODP conformance, validation, transport safety, caching, and failure handling across the Agent, Directory, and Service packages.
+
 ## 0.2.5
 
 ### Patch Changes
