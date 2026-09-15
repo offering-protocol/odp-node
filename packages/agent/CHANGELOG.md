@@ -1,5 +1,16 @@
 # @offering-protocol/agent
 
+## 0.4.3
+
+### Patch Changes
+
+- [#57](https://github.com/offering-protocol/odp-node/pull/57) [`a6dfb9e`](https://github.com/offering-protocol/odp-node/commit/a6dfb9e77d3fadef0a64d955e0a1ed0cdbfa1dca) Thanks [@nkavian](https://github.com/nkavian)! - Update the Agent HTTP transport dependency.
+
+- [#52](https://github.com/offering-protocol/odp-node/pull/52) [`e2befe8`](https://github.com/offering-protocol/odp-node/commit/e2befe8d5f4b9adcc51633834d5f7377eb2f5014) Thanks [@zhoodar](https://github.com/zhoodar)! - Improve ODP conformance, validation, transport safety, caching, and failure handling across the Agent, Directory, and Service packages.
+
+- Updated dependencies [[`73447fc`](https://github.com/offering-protocol/odp-node/commit/73447fc45eda1d8cf59deacd25922617cb19c0c0), [`e2befe8`](https://github.com/offering-protocol/odp-node/commit/e2befe8d5f4b9adcc51633834d5f7377eb2f5014)]:
+  - @offering-protocol/directory@0.2.6
+
 ## 0.4.2
 
 ### Patch Changes

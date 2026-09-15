@@ -1,6 +1,6 @@
 {
   "name": "@offering-protocol/directory",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Canonical directory client for ODP Service discovery.",
   "homepage": "https://www.offeringprotocol.org/",
   "type": "module",

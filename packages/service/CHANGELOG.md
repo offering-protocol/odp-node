@@ -1,5 +1,11 @@
 # @offering-protocol/service
 
+## 0.3.4
+
+### Patch Changes
+
+- [#52](https://github.com/offering-protocol/odp-node/pull/52) [`e2befe8`](https://github.com/offering-protocol/odp-node/commit/e2befe8d5f4b9adcc51633834d5f7377eb2f5014) Thanks [@zhoodar](https://github.com/zhoodar)! - Improve ODP conformance, validation, transport safety, caching, and failure handling across the Agent, Directory, and Service packages.
+
 ## 0.3.3
 
 ### Patch Changes
