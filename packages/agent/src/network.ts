@@ -17,15 +17,20 @@ const MAX_DECODED_BYTES = 1_048_576;
 /** Statuses that RFC 9110 defines as carrying no content, which `Response` refuses to pair with a body. */
 const NULL_BODY_STATUSES = new Set([101, 103, 204, 205, 304]);
 
+/** @internal */
+export class DestinationPolicyError extends TypeError {}
+
 export function createDefaultTransport(allowLocalNetwork = false): OdpTransport {
   return async (input, init) => {
     const url = new URL(String(input));
     if (url.username !== "" || url.password !== "")
-      throw new TypeError("ODP request URL must not contain credentials");
+      throw new DestinationPolicyError("ODP request URL must not contain credentials");
     const hostname = url.hostname.startsWith("[") ? url.hostname.slice(1, -1) : url.hostname;
     const local = isLocalDevelopmentHost(hostname);
     if (url.protocol !== "https:" && !(url.protocol === "http:" && local && allowLocalNetwork))
-      throw new TypeError("ODP requests require HTTPS unless local development is enabled");
+      throw new DestinationPolicyError(
+        "ODP requests require HTTPS unless local development is enabled"
+      );
     const records = await resolvePublicAddresses(hostname, local && allowLocalNetwork);
     const address = records[0];
     if (address === undefined) throw new TypeError("ODP request host did not resolve");
@@ -36,7 +41,7 @@ export function createDefaultTransport(allowLocalNetwork = false): OdpTransport 
       // redirect or connection reuse cannot borrow the validated addresses (SEC-10, SEC-11).
       const requested = requestedHost.startsWith("[") ? requestedHost.slice(1, -1) : requestedHost;
       if (requested !== hostname) {
-        callback(new TypeError("ODP request connected to an unvalidated host"), "", 0);
+        callback(new DestinationPolicyError("ODP request connected to an unvalidated host"), "", 0);
         return;
       }
       if (options.all === true) {
@@ -91,10 +96,12 @@ async function resolvePublicAddresses(
     const range = ipaddr.process(record.address).range();
     if (localDevelopment) {
       if (range !== "loopback")
-        throw new TypeError("ODP local-development host resolved outside the loopback network");
+        throw new DestinationPolicyError(
+          "ODP local-development host resolved outside the loopback network"
+        );
     } else if (range !== "unicast") {
       // Rejects the whole target rather than selecting a passing record (SEC-09).
-      throw new TypeError("ODP request host resolved to a non-public address");
+      throw new DestinationPolicyError("ODP request host resolved to a non-public address");
     }
   }
   return records;

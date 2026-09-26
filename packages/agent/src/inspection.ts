@@ -11,7 +11,7 @@ import {
 } from "@offering-protocol/core";
 
 import type { OdpCache, OdpCacheRecord } from "./cache.js";
-import { createDefaultTransport } from "./network.js";
+import { createDefaultTransport, DestinationPolicyError } from "./network.js";
 import type { OdpTransport } from "./transport.js";
 
 const ODP_MEDIA_TYPE = "application/odp+json";
@@ -309,26 +309,23 @@ async function fetchWithRedirects(
     }
   } catch (error) {
     if (error instanceof OdpInspectionError) throw error;
-    if (isAbortError(error))
+    if (isAbortError(error) || options.signal?.aborted === true)
       throw new OdpInspectionError(
         "ODP Service Document request was aborted.",
         "aborted",
         undefined,
         error
       );
-    // A destination-policy rejection is not the same as a connection failure, and the reason has to
-    // survive: the transport is where the SSRF and transport-security guards live.
-    if (error instanceof TypeError || error instanceof RangeError)
+    const rejection =
+      error instanceof DestinationPolicyError
+        ? error
+        : error instanceof Error && error.cause instanceof DestinationPolicyError
+          ? error.cause
+          : undefined;
+    if (rejection !== undefined)
       throw new OdpInspectionError(
-        `ODP Service Document request was rejected: ${error.message}`,
+        `ODP Service Document request was rejected: ${rejection.message}`,
         "blocked_destination",
-        undefined,
-        error
-      );
-    if (options.signal?.aborted === true)
-      throw new OdpInspectionError(
-        "ODP Service Document request was aborted.",
-        "aborted",
         undefined,
         error
       );

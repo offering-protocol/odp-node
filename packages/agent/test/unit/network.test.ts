@@ -4,6 +4,7 @@ import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createDefaultTransport } from "../../src/network.js";
+import { inspectService } from "../../src/inspection.js";
 
 const servers: ReturnType<typeof createServer>[] = [];
 
@@ -17,6 +18,26 @@ afterEach(async () => {
 });
 
 describe("default ODP transport", () => {
+  it("classifies an actual fetch socket failure as a connection error", async () => {
+    const server = createServer((request) => request.socket.destroy());
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    if (address === null || typeof address === "string") throw new Error("server has no TCP port");
+    await expect(
+      inspectService({
+        serviceUrl: `http://127.0.0.1:${address.port}`,
+        allowLocalNetwork: true
+      })
+    ).rejects.toMatchObject({ code: "http_error", cause: { name: "TypeError" } });
+  });
+
+  it("classifies an actual private destination rejection without making a request", async () => {
+    const failure = inspectService({ serviceUrl: "https://127.0.0.1" });
+    await expect(failure).rejects.toMatchObject({ code: "blocked_destination" });
+    await expect(failure).rejects.toThrow("non-public address");
+  });
+
   it("rejects non-public destinations", async () => {
     await expect(createDefaultTransport()(new URL("https://127.0.0.1/"))).rejects.toThrow(
       "non-public address"

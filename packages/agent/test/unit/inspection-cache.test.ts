@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createInMemoryOdpCache, type OdpCache, type OdpCacheRecord } from "../../src/cache.js";
 import { inspectService, OdpInspectionError } from "../../src/inspection.js";
+import { DestinationPolicyError } from "../../src/network.js";
 import type { OdpTransport } from "../../src/transport.js";
 
 const document = {
@@ -172,13 +173,41 @@ describe("Service Document caching", () => {
 describe("Service Document failures", () => {
   it("reports a destination-policy rejection distinctly and keeps its cause", async () => {
     const transport: OdpTransport = vi.fn(() =>
-      Promise.reject(new TypeError("ODP request host resolved to a non-public address"))
+      Promise.reject(
+        new DestinationPolicyError("ODP request host resolved to a non-public address")
+      )
     );
     const failure = await failureOf(inspect(transport));
-    // Flattening every transport failure to `http_error` hid exactly the errors worth seeing.
     expect(failure.code).toBe("blocked_destination");
     expect(failure.message).toContain("non-public address");
     expect(failure.cause).toBeInstanceOf(TypeError);
+  });
+
+  it("recognizes a destination rejection wrapped by fetch", async () => {
+    const cause = new DestinationPolicyError("ODP request connected to an unvalidated host");
+    const error = new TypeError("fetch failed", { cause });
+    const failure = await failureOf(inspect(() => Promise.reject(error)));
+    expect(failure.code).toBe("blocked_destination");
+    expect(failure.message).toContain(cause.message);
+    expect(failure.cause).toBe(error);
+  });
+
+  it.each([
+    new TypeError("fetch failed", { cause: new Error("connect ETIMEDOUT") }),
+    new TypeError("fetch failed", { cause: new AggregateError([new Error("ECONNREFUSED")]) }),
+    new TypeError("custom transport failure"),
+    new RangeError("custom transport limit"),
+    "connection lost"
+  ])("does not infer destination policy from a generic transport failure: %s", async (error) => {
+    const failure = await failureOf(inspect(vi.fn<OdpTransport>().mockRejectedValue(error)));
+    expect(failure.code).toBe("http_error");
+    expect(failure.status).toBeUndefined();
+    expect(failure.cause).toBe(error);
+  });
+
+  it("preserves explicit errors from a custom transport", async () => {
+    const error = new OdpInspectionError("Custom destination policy", "blocked_destination");
+    expect(await failureOf(inspect(() => Promise.reject(error)))).toBe(error);
   });
 
   it("reports an abort as an abort and preserves its cause", async () => {
@@ -193,7 +222,7 @@ describe("Service Document failures", () => {
   it("reports an aborted signal even when the transport rejected with something else", async () => {
     const controller = new AbortController();
     controller.abort();
-    const transport: OdpTransport = vi.fn(() => Promise.reject(new Error("connection reset")));
+    const transport: OdpTransport = vi.fn(() => Promise.reject(new TypeError("fetch failed")));
     const failure = await failureOf(inspect(transport, { signal: controller.signal }));
     expect(failure.code).toBe("aborted");
     expect(failure.cause).toBeInstanceOf(Error);
