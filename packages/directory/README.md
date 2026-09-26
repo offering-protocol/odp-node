@@ -86,7 +86,9 @@ for all sources, or specify both. An empty list, duplicates, and unsupported fil
 
 Each known result carries `service` metadata and `indexed_at`. For a Collection, the outer timestamp
 describes its indexed metadata; `service.indexed_at` describes its parent. A Service result can have
-`available_through`, a platform reference with `service_id`, `service_origin`, and optional `name`.
+`publisher`, display attribution with `publisher_id`, `name`, and `website_url`.
+The website is a human-facing link, not a discovery document or execution target.
+Publisher attribution is optional; additional response fields are preserved.
 This describes availability, not brand ownership. A Collection's owning `service` provides its
 attribution.
 
