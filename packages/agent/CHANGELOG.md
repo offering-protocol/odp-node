@@ -1,5 +1,11 @@
 # @offering-protocol/agent
 
+## 0.4.6
+
+### Patch Changes
+
+- [#64](https://github.com/offering-protocol/odp-node/pull/64) [`4d909ec`](https://github.com/offering-protocol/odp-node/commit/4d909ec9a5c54a749febd309210c838f616e4fa7) Thanks [@nkavian](https://github.com/nkavian)! - Report connection failures during Service inspection as transport failures rather than blocked destinations, while preserving destination-policy rejections and cancellation causes.
+
 ## 0.4.5
 
 ### Patch Changes
