@@ -51,7 +51,7 @@ export interface DirectoryResourceSearchRequest extends DirectorySearchRequest {
   types?: Array<"service" | "collection">;
 }
 
-export interface DirectoryServiceReference extends Record<string, unknown> {
+interface DirectoryServiceReference extends Record<string, unknown> {
   service_id: string;
   service_origin: string;
   name?: string;
@@ -83,11 +83,17 @@ export interface DirectoryIndexedService extends Record<string, unknown> {
   website_url?: string;
 }
 
+export interface DirectoryPublisher extends Record<string, unknown> {
+  publisher_id: string;
+  name: string;
+  website_url: string;
+}
+
 export interface DirectoryServiceResult extends Record<string, unknown> {
   type: "service";
   service: DirectoryIndexedService;
   indexed_at: string;
-  available_through?: DirectoryServiceReference;
+  publisher?: DirectoryPublisher | null;
 }
 
 export interface DirectoryCollectionResult extends Record<string, unknown> {
@@ -559,16 +565,14 @@ function parseResult(value: unknown): DirectoryResult {
   };
   const indexedAt = parseIndexedAt(object["indexed_at"]);
   if (type === "service") {
-    const availableThrough =
-      object["available_through"] === undefined
-        ? undefined
-        : parseServiceReference(object["available_through"]);
+    const publisher =
+      object["publisher"] == null ? object["publisher"] : parsePublisher(object["publisher"]);
     return {
       ...object,
       type,
       service,
       indexed_at: indexedAt,
-      ...(availableThrough === undefined ? {} : { available_through: availableThrough })
+      ...(publisher === undefined ? {} : { publisher })
     };
   }
   const collection = requireObject(object["collection"], "collection");
@@ -684,12 +688,26 @@ function recognizedDescriptors<Value>(
   return result;
 }
 
+function parsePublisher(value: unknown): DirectoryPublisher {
+  const object = requireObject(value, "publisher");
+  const website = requireText(object["website_url"], "website_url", 1, 512);
+  const url = new URL(website);
+  if (url.protocol !== "https:" || url.username !== "" || url.password !== "")
+    throw new TypeError("Publisher website must be an HTTPS URL without credentials");
+  return {
+    ...object,
+    publisher_id: requireText(object["publisher_id"], "publisher_id", 1, 128),
+    name: requireText(object["name"], "name", 1, 128),
+    website_url: website
+  };
+}
+
 function parseServiceReference(value: unknown): DirectoryServiceReference {
-  const object = requireObject(value, "available_through");
+  const object = requireObject(value, "service");
   const serviceOrigin = requireText(object["service_origin"], "service_origin", 1, 2048);
   const url = parseOrigin(serviceOrigin);
   if (url.protocol !== "https:" || url.origin !== serviceOrigin || isPrivateHost(url.hostname))
-    throw new TypeError("Attribution origin must be a public HTTPS origin");
+    throw new TypeError("Service origin must be a public HTTPS origin");
   const name = optionalText(object["name"], "name", 128);
   return {
     ...object,

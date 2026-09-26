@@ -30,8 +30,8 @@ const collection = {
 };
 const serviceResult = { type: "service", indexed_at: service.indexed_at, service };
 const attribution = {
-  service_id: "platform",
-  service_origin: "https://platform.example",
+  publisher_id: "platform",
+  website_url: "https://platform.example/catalog",
   name: "Platform"
 };
 
@@ -58,7 +58,7 @@ describe("mixed Directory discovery", () => {
     const unknown = { type: "offering", arbitrary: { id: "future" } };
     const transport = vi.fn<typeof fetch>().mockResolvedValueOnce(
       json({
-        items: [{ ...serviceResult, available_through: attribution }, collection, unknown],
+        items: [{ ...serviceResult, publisher: attribution }, collection, unknown],
         facets: { keywords: [{ value: "weather", count: 12 }] },
         extra: true
       })
@@ -70,7 +70,7 @@ describe("mixed Directory discovery", () => {
     expect(pages).toEqual([
       {
         items: [
-          { ...serviceResult, available_through: attribution },
+          { ...serviceResult, publisher: attribution },
           collection,
           { type: "unknown", resource_type: "offering", raw: unknown }
         ],
@@ -175,17 +175,23 @@ describe("mixed Directory discovery", () => {
       { ...collection, collection: { ...collection.collection, description: "x".repeat(1025) } },
       {
         ...serviceResult,
-        available_through: { ...attribution, service_origin: "http://platform.example" }
+        publisher: { ...attribution, website_url: "http://platform.example" }
       },
       {
         ...serviceResult,
-        available_through: { ...attribution, service_origin: "https://platform.example/path" }
+        publisher: { ...attribution, website_url: "https://user:secret@platform.example/path" }
       },
       {
         ...serviceResult,
-        available_through: { ...attribution, service_origin: "https://127.0.0.1" }
+        publisher: { ...attribution, website_url: "not-a-url" }
       },
-      { ...serviceResult, available_through: { ...attribution, service_id: "" } }
+      { ...serviceResult, publisher: { ...attribution, publisher_id: "" } },
+      { ...serviceResult, publisher: { ...attribution, name: "" } },
+      { ...serviceResult, publisher: [] },
+      {
+        ...serviceResult,
+        publisher: { ...attribution, website_url: "https://user@platform.example/" }
+      }
     ];
     const client = createDirectoryClient({
       transport: () => Promise.resolve(json({ items: [...malformed, collection] }))
@@ -198,9 +204,15 @@ describe("mixed Directory discovery", () => {
   it("accepts omitted optional metadata, empty descriptions and additive fields", async () => {
     const items = [
       serviceResult,
+      { ...serviceResult, publisher: null },
       {
         ...serviceResult,
-        available_through: { service_id: "platform", service_origin: "https://platform.example" }
+        available_through: { service_id: "legacy", service_origin: "https://legacy.example" }
+      },
+      { ...serviceResult, future_metadata: { arbitrary: true } },
+      {
+        ...serviceResult,
+        publisher: { ...attribution, extra: { retained: true } }
       },
       { ...collection, collection: { id: "Weather", name: "Forecasts", extra: 1 } },
       { ...collection, collection: { ...collection.collection, description: "" } }
