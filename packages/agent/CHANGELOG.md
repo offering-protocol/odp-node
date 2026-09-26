@@ -1,5 +1,12 @@
 # @offering-protocol/agent
 
+## 0.4.5
+
+### Patch Changes
+
+- Updated dependencies [[`4131b6a`](https://github.com/offering-protocol/odp-node/commit/4131b6aa6191276197016ae89c10e917469e1556)]:
+  - @offering-protocol/directory@0.4.0
+
 ## 0.4.4
 
 ### Patch Changes
