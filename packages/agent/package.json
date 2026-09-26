@@ -1,6 +1,6 @@
 {
   "name": "@offering-protocol/agent",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Agent-side directory and Service discovery workflows for ODP.",
   "homepage": "https://www.offeringprotocol.org/",
   "type": "module",

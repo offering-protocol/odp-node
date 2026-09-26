@@ -1,5 +1,11 @@
 # @offering-protocol/directory
 
+## 0.4.0
+
+### Minor Changes
+
+- [#62](https://github.com/offering-protocol/odp-node/pull/62) [`4131b6a`](https://github.com/offering-protocol/odp-node/commit/4131b6aa6191276197016ae89c10e917469e1556) Thanks [@nkavian](https://github.com/nkavian)! - Replace typed Service-to-Service attribution with publisher metadata in mixed directory results. Preserve additional response fields and accept omitted or null publisher attribution.
+
 ## 0.3.0
 
 ### Minor Changes
