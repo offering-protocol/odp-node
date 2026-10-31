@@ -1,5 +1,13 @@
 # @offering-protocol/agent
 
+## 0.4.7
+
+### Patch Changes
+
+- [#71](https://github.com/offering-protocol/odp-node/pull/71) [`ab382d3`](https://github.com/offering-protocol/odp-node/commit/ab382d3333fecf693b20349e6fd73520042700a6) Thanks [@nkavian](https://github.com/nkavian)! - Allow spaces in OpenAPI security-scheme identifiers during Action resolution while preserving the identifiers and all other document validation.
+
+- [#70](https://github.com/offering-protocol/odp-node/pull/70) [`ebdb66e`](https://github.com/offering-protocol/odp-node/commit/ebdb66ec3cbbb33a2ac540d3b8d7a40dd38fdbb6) Thanks [@dependabot](https://github.com/apps/dependabot)! - Update Undici to require version 7.30.1 or later within version 7, incorporating upstream security fixes.
+
 ## 0.4.6
 
 ### Patch Changes
