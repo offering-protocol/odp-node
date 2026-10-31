@@ -42,8 +42,27 @@ export async function resolveOpenApiOperation(
     !/^3\.1\.\d+(?:[-+].*)?$/u.test(document["openapi"])
   )
     throw new TypeError("ODP Action requires an OpenAPI 3.1 document");
-  const validation = await validate("https://spec.openapis.org/oas/3.1/schema-base", document);
-  if (!validation.valid) throw new TypeError("ODP Action OpenAPI document is invalid");
+  const validation = await validate(
+    "https://spec.openapis.org/oas/3.1/schema-base",
+    document,
+    "BASIC"
+  );
+  if (
+    !validation.valid &&
+    (!validation.errors?.length ||
+      !validation.errors.every(
+        (error) =>
+          error.keyword === "https://json-schema.org/keyword/pattern" &&
+          error.absoluteKeywordLocation.startsWith(
+            "https://spec.openapis.org/oas/3.1/schema#/$defs/components/"
+          ) &&
+          error.absoluteKeywordLocation.endsWith("/propertyNames/pattern") &&
+          /^#\*\/components\/securitySchemes\/(?:[a-zA-Z0-9._-]|%20)+$/u.test(
+            error.instanceLocation
+          )
+      ))
+  )
+    throw new TypeError("ODP Action OpenAPI document is invalid");
   const matches: Record<string, unknown>[] = [];
   // OFR-69 requires the document to hold *exactly one* matching Operation Object. OpenAPI 3.1
   // makes `paths` optional and lets Operation Objects live under `webhooks` and

@@ -27,6 +27,65 @@ function resolve(document: unknown, operationId = "buy"): Promise<unknown> {
 }
 
 describe("OpenAPI Action resolution", () => {
+  it("preserves spaced security-scheme names, references, and requirements", async () => {
+    const document = documentFor({
+      paths: {
+        "/buy": { post: { ...OPERATION, security: [{ "API Key or OAuth": [] }] } }
+      },
+      components: {
+        securitySchemes: {
+          "API Key or OAuth": { type: "apiKey", in: "header", name: "X-Api-Key" },
+          alias: { $ref: "#/components/securitySchemes/API%20Key%20or%20OAuth" }
+        }
+      }
+    });
+    const before = structuredClone(document);
+    const resolved = await resolveOpenApiOperation({
+      url: new URL("https://example.com/openapi.json"),
+      operationId: "buy",
+      transport: transportFor(document)
+    });
+    expect(resolved.document).toEqual(before);
+    expect(resolved.operation["security"]).toEqual([{ "API Key or OAuth": [] }]);
+    expect(document).toEqual(before);
+  });
+
+  it.each(["API/Key", "API\tKey", "API\nKey", "API%20Key", "API@Key", ""])(
+    "rejects other invalid security-scheme names: %j",
+    async (name) => {
+      await expect(
+        resolve(
+          documentFor({
+            paths: { "/buy": { post: OPERATION } },
+            components: { securitySchemes: { [name]: { type: "http", scheme: "bearer" } } }
+          })
+        )
+      ).rejects.toThrow("OpenAPI document is invalid");
+    }
+  );
+
+  it.each([
+    { info: { title: 7, version: "1" } },
+    { paths: { "/buy": { post: { operationId: 7 } } } },
+    { components: { securitySchemes: { "API Key": { type: "invalid" } } } },
+    {
+      components: {
+        schemas: { "Invalid Name": { type: "string" } },
+        securitySchemes: { "API Key": { type: "http", scheme: "bearer" } }
+      }
+    }
+  ])("does not suppress other validation failures alongside a spaced name", async (extra) => {
+    await expect(
+      resolve(
+        documentFor({
+          paths: { "/buy": { post: OPERATION } },
+          components: { securitySchemes: { "API Key": { type: "http", scheme: "bearer" } } },
+          ...extra
+        })
+      )
+    ).rejects.toThrow("OpenAPI document is invalid");
+  });
+
   it("resolves an operation declared under paths", async () => {
     const resolved = await resolveOpenApiOperation({
       url: new URL("https://example.com/openapi.json"),
