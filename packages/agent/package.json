@@ -45,7 +45,7 @@
     "ajv-formats": "^3.0.1",
     "http-cache-semantics": "^4.2.0",
     "ipaddr.js": "^2.5.0",
-    "undici": "^7.29.1"
+    "undici": "^7.30.1"
   },
   "publishConfig": {
     "access": "public",
